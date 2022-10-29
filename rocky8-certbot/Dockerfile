@@ -171,5 +171,9 @@ EXPOSE 587
 # SMTPS
 EXPOSE 465
 
+# HTTPS
+# For letsencrypt https challenge
+EXPOSE 443
+
 ENTRYPOINT ["entrypoint.sh"]
 CMD ["supervisord", "-c", "/etc/supervisord.conf"]
