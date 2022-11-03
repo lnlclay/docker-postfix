@@ -1,6 +1,10 @@
 FROM rockylinux/rockylinux:8
 MAINTAINER "Hiroki Takeyama"
 
+# update base image
+RUN dnf upgrade -y; \
+    dnf clean all;
+
 # openssl
 RUN mkdir /ssl_certs; \
     dnf -y install openssl; \
@@ -54,16 +58,6 @@ RUN mkdir /dkim_keys; \
     sed -i 's/^\(SoftwareHeader\t\).*/\1no/' /etc/opendkim.conf; \
     sed -i 's/^# *\(Domain\t.*\)/\1/' /etc/opendkim.conf; \
     echo 'smtpd_milters = inet:localhost:8891' >> /etc/postfix/main.cf; \
-# certbot
-    dnf -y install certbot; \
-    mkdir /letsencrypt_config; \
-    mkdir /letsencrypt_workdir; \
-# no idea if this config file is necessary in custom folder
-#    { \
-#    echo '# Because we are using logrotate for greater flexibility, disable the'; \
-#    echo '# internal certbot logrotation.'; \
-#    echo 'max-log-backups = 0'; \
-#    } > /letsencrypt_config/cli.ini; \
     dnf clean all;
 
 # rsyslog
@@ -81,13 +75,13 @@ RUN mkdir /run/supervisor; \
     { \
     echo '[program:postfix]'; \
     echo 'command=/usr/sbin/postfix -c /etc/postfix start'; \
-    echo 'priority=4'; \
+    echo 'priority=6'; \
     echo 'startsecs=0'; \
     } > /etc/supervisord.d/postfix.ini; \
     { \
     echo '[program:opendkim]'; \
     echo 'command=/usr/sbin/opendkim -f -x /etc/opendkim.conf'; \
-    echo 'priority=3'; \
+    echo 'priority=4'; \
     } > /etc/supervisord.d/opendkim.ini; \
     { \
     echo '[program:rsyslog]'; \
@@ -101,25 +95,37 @@ RUN mkdir /run/supervisor; \
     echo 'stdout_logfile=/dev/fd/1'; \
     echo 'stdout_logfile_maxbytes=0'; \
     } > /etc/supervisord.d/tail.ini; \
+    dnf clean all;
+    
+# certbot
+RUN dnf -y install certbot; \
+    mkdir /letsencrypt_config; \
 # supervisor generate new letsencrypt certificate
     { \
-    echo '[program:letsencrypt]'; \
+    echo '[program:certgen]'; \
     echo 'command=/bin/bash -c "certbot certonly --standalone --keep-until-expiring --work-dir /letsencrypt_workdir --config-dir /letsencrypt_config --email ${LETSENCRYPT_MAIL} --agree-tos  -d ${HOSTNAME} && supervisorctl start app letsencrypt-renew"'; \
+    echo 'priority=5'; \
     echo 'autorestart=false'; \
     } > /etc/supervisord.d/letsencrypt.ini; \
 # supervisor renew certificates
     { \
-    echo '[program:letsencrypt-renew]'; \
+    echo '[program:certrenew]'; \
     echo 'command=/bin/bash -c "sleep 1d && certbot renew --work-dir /letsencrypt_workdir --config-dir /letsencrypt_config --pre-hook 'supervisorctl stop postfix' --post-hook 'supervisorctl start postfix'"'; \
     echo 'autostart=false'; \
     echo 'autorestart=true'; \
     } > /etc/supervisord.d/letsencrypt-renew.ini; \
+# TODO
+# make supervisor monitor letsencrypt logs
+    { \
+    echo '[program:letsencrypt_log]'; \
+    echo 'command=/usr/bin/tail -F /var/log/letsencrypt/letsencrypt.log'; \
+    echo 'priority=3'; \
+    echo 'stdout_logfile=/dev/fd/1'; \
+    echo 'stdout_logfile_maxbytes=0'; \
+    } > /etc/supervisord.d/letsencrypt-log.ini; \
     dnf clean all;
 
 # entrypoint
-# TODO modify postfix to use letsencrypt certificates
-# I don't think there's any need to have specific let's encrypt script in entrypoint.sh if supervisord is already handling the job
- 
 RUN { \
     echo '#!/bin/bash -eu'; \
     echo 'ln -fs /usr/share/zoneinfo/${TIMEZONE} /etc/localtime'; \
@@ -193,9 +199,8 @@ ENV LETSENCRYPT_MAIL admin@example.com
 VOLUME /ssl_certs
 # DKIM Keys
 VOLUME /dkim_keys
-# letsencrypt work directory
-VOLUME /letsencrypt_workdir
-# letsencrypt config directory
+
+# Letsencrypt Certificates
 VOLUME /letsencrypt_config
 
 # SMTP
