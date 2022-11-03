@@ -4,16 +4,6 @@ MAINTAINER "Hiroki Takeyama"
 # openssl
 RUN mkdir /ssl_certs; \
     dnf -y install openssl; \
-# certbot
-    dnf -y install certbot; \
-    mkdir /letsencrypt_config; \
-    mkdir /letsencrypt_workdir; \
-# no idea if this config file is necessary in custom folder
-    { \
-    echo '# Because we are using logrotate for greater flexibility, disable the'; \
-    echo '# internal certbot logrotation.'; \
-    echo 'max-log-backups = 0'; \
-    } > /letsencrypt-config/cli.ini; \
     dnf clean all;
 
 # postfix
@@ -64,6 +54,16 @@ RUN mkdir /dkim_keys; \
     sed -i 's/^\(SoftwareHeader\t\).*/\1no/' /etc/opendkim.conf; \
     sed -i 's/^# *\(Domain\t.*\)/\1/' /etc/opendkim.conf; \
     echo 'smtpd_milters = inet:localhost:8891' >> /etc/postfix/main.cf; \
+# certbot
+    dnf -y install certbot; \
+    mkdir /letsencrypt_config; \
+    mkdir /letsencrypt_workdir; \
+# no idea if this config file is necessary in custom folder
+    { \
+    echo '# Because we are using logrotate for greater flexibility, disable the'; \
+    echo '# internal certbot logrotation.'; \
+    echo 'max-log-backups = 0'; \
+    } > /letsencrypt_config/cli.ini; \
     dnf clean all;
 
 # rsyslog
