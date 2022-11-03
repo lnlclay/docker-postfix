@@ -59,11 +59,11 @@ RUN mkdir /dkim_keys; \
     mkdir /letsencrypt_config; \
     mkdir /letsencrypt_workdir; \
 # no idea if this config file is necessary in custom folder
-    { \
-    echo '# Because we are using logrotate for greater flexibility, disable the'; \
-    echo '# internal certbot logrotation.'; \
-    echo 'max-log-backups = 0'; \
-    } > /letsencrypt_config/cli.ini; \
+#    { \
+#    echo '# Because we are using logrotate for greater flexibility, disable the'; \
+#    echo '# internal certbot logrotation.'; \
+#    echo 'max-log-backups = 0'; \
+#    } > /letsencrypt_config/cli.ini; \
     dnf clean all;
 
 # rsyslog
@@ -141,7 +141,7 @@ RUN { \
     echo 'chown postfix:postfix /etc/sasldb2'; \
     echo 'sed -i '\''/^# BEGIN SMTP SETTINGS$/,/^# END SMTP SETTINGS$/d'\'' /etc/postfix/main.cf'; \
     echo 'sed -i "s/^\(smtpd_tls_cert_file =\) .*/\1 \/letsencrypt_config\/live\/${HOSTNAME}\/fullchain.pem/" /etc/postfix/main.cf'; \
-#   echo 'sed -i "s/^\(smtpd_tls_key_file =\) .*/\1 \/letsencrypt_config\/live\/${HOSTNAME}\/privkey.pem/" /etc/postfix/main.cf'; \
+    echo 'sed -i "s/^\(smtpd_tls_key_file =\) .*/\1 \/letsencrypt_config\/live\/${HOSTNAME}\/privkey.pem/" /etc/postfix/main.cf'; \
     echo '{'; \
     echo 'echo "# BEGIN SMTP SETTINGS"'; \
     echo 'echo "myhostname = ${HOSTNAME}"'; \
