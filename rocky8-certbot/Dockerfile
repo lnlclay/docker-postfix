@@ -119,8 +119,6 @@ RUN mkdir /run/supervisor; \
 # entrypoint
 # TODO modify postfix to use letsencrypt certificates
 # I don't think there's any need to have specific let's encrypt script in entrypoint.sh if supervisord is already handling the job
-#   echo 'sed -i 's/^\(smtpd_tls_cert_file =\) .*/\1 \/ssl_certs\/cert.pem/' /etc/postfix/main.cf'; \
-#   echo 'sed -i 's/^\(smtpd_tls_key_file =\) .*/\1 \/ssl_certs\/key.pem/' /etc/postfix/main.cf'; \
  
 RUN { \
     echo '#!/bin/bash -eu'; \
@@ -142,6 +140,8 @@ RUN { \
     echo 'echo "${AUTH_PASSWORD}" | /usr/sbin/saslpasswd2 -p -c -u ${DOMAIN_NAME} ${AUTH_USER}'; \
     echo 'chown postfix:postfix /etc/sasldb2'; \
     echo 'sed -i '\''/^# BEGIN SMTP SETTINGS$/,/^# END SMTP SETTINGS$/d'\'' /etc/postfix/main.cf'; \
+    echo 'sed -i "s/^\(smtpd_tls_cert_file =\) .*/\1 \/letsencrypt_config\/live\/${HOSTNAME}\/fullchain.pem/" /etc/postfix/main.cf'; \
+#   echo 'sed -i "s/^\(smtpd_tls_key_file =\) .*/\1 \/letsencrypt_config\/live\/${HOSTNAME}\/privkey.pem/" /etc/postfix/main.cf'; \
     echo '{'; \
     echo 'echo "# BEGIN SMTP SETTINGS"'; \
     echo 'echo "myhostname = ${HOSTNAME}"'; \
@@ -207,8 +207,6 @@ EXPOSE 465
 
 # HTTP for letsencrypt http challenge
 EXPOSE 80
-# HTTPS For letsencrypt https challenge
-EXPOSE 443
 
 ENTRYPOINT ["entrypoint.sh"]
 CMD ["supervisord", "-c", "/etc/supervisord.conf"]
