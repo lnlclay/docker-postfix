@@ -2,7 +2,7 @@ FROM rockylinux/rockylinux:8
 MAINTAINER "Hiroki Takeyama"
 
 # update base image
-RUN dnf upgrade -y; \
+RUN dnf upgrade --setopt=install_weak_deps=False -y; \
     dnf clean all;
 
 # openssl
