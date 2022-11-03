@@ -4,6 +4,16 @@ MAINTAINER "Hiroki Takeyama"
 # openssl
 RUN mkdir /ssl_certs; \
     dnf -y install openssl; \
+# certbot
+    dnf -y install certbot; \
+    mkdir /letsencrypt_config; \
+    mkdir /letsencrypt_workdir; \
+# no idea if this config file is necessary in custom folder
+    { \
+    echo '# Because we are using logrotate for greater flexibility, disable the'; \
+    echo '# internal certbot logrotation.'; \
+    echo 'max-log-backups = 0'; \
+    } > /letsencrypt-config/cli.ini; \
     dnf clean all;
 
 # postfix
@@ -91,9 +101,27 @@ RUN mkdir /run/supervisor; \
     echo 'stdout_logfile=/dev/fd/1'; \
     echo 'stdout_logfile_maxbytes=0'; \
     } > /etc/supervisord.d/tail.ini; \
+# supervisor generate new letsencrypt certificate
+    { \
+    echo '[program:letsencrypt]'; \
+    echo 'command=/bin/bash -c "certbot certonly --standalone --keep-until-expiring --work-dir /letsencrypt_workdir --config-dir /letsencrypt_config --email ${LETSENCRYPT_MAIL} --agree-tos --staging -d ${HOSTNAME} && supervisorctl start app letsencrypt-renew"'; \
+    echo 'autorestart=false'; \
+    } > /etc/supervisord.d/letsencrypt.ini; \
+# supervisor renew certificates
+    { \
+    echo '[program:letsencrypt-renew]'; \
+    echo 'command=/bin/bash -c "sleep 1d && certbot renew --work-dir /letsencrypt_workdir --config-dir /letsencrypt_config --pre-hook 'supervisorctl stop postfix' --post-hook 'supervisorctl start postfix'"'; \
+    echo 'autostart=false'; \
+    echo 'autorestart=true'; \
+    } > /etc/supervisord.d/letsencrypt-renew.ini; \
     dnf clean all;
 
 # entrypoint
+# TODO modify postfix to use letsencrypt certificates
+# I don't think there's any need to have specific let's encrypt script in entrypoint.sh if supervisord is already handling the job
+#   echo 'sed -i 's/^\(smtpd_tls_cert_file =\) .*/\1 \/ssl_certs\/cert.pem/' /etc/postfix/main.cf'; \
+#   echo 'sed -i 's/^\(smtpd_tls_key_file =\) .*/\1 \/ssl_certs\/key.pem/' /etc/postfix/main.cf'; \
+ 
 RUN { \
     echo '#!/bin/bash -eu'; \
     echo 'ln -fs /usr/share/zoneinfo/${TIMEZONE} /etc/localtime'; \
@@ -159,10 +187,16 @@ ENV ENABLE_DKIM true
 ENV DKIM_KEY_LENGTH 1024
 ENV DKIM_SELECTOR default
 
+ENV LETSENCRYPT_MAIL admin@example.com
+
 # SSL Certificates
 VOLUME /ssl_certs
 # DKIM Keys
 VOLUME /dkim_keys
+# letsencrypt work directory
+VOLUME /letsencrypt_workdir
+# letsencrypt config directory
+VOLUME /letsencrypt_config
 
 # SMTP
 EXPOSE 25
@@ -171,8 +205,9 @@ EXPOSE 587
 # SMTPS
 EXPOSE 465
 
-# HTTPS
-# For letsencrypt https challenge
+# HTTP for letsencrypt http challenge
+EXPOSE 80
+# HTTPS For letsencrypt https challenge
 EXPOSE 443
 
 ENTRYPOINT ["entrypoint.sh"]
