@@ -104,7 +104,7 @@ RUN mkdir /run/supervisor; \
 # supervisor generate new letsencrypt certificate
     { \
     echo '[program:letsencrypt]'; \
-    echo 'command=/bin/bash -c "certbot certonly --standalone --keep-until-expiring --work-dir /letsencrypt_workdir --config-dir /letsencrypt_config --email ${LETSENCRYPT_MAIL} --preferred-challenge tls-sni --agree-tos --staging -d ${HOSTNAME} && supervisorctl start app letsencrypt-renew"'; \
+    echo 'command=/bin/bash -c "certbot certonly --standalone --keep-until-expiring --work-dir /letsencrypt_workdir --config-dir /letsencrypt_config --email ${LETSENCRYPT_MAIL} --agree-tos --staging -d ${HOSTNAME} && supervisorctl start app letsencrypt-renew"'; \
     echo 'autorestart=false'; \
     } > /etc/supervisord.d/letsencrypt.ini; \
 # supervisor renew certificates
@@ -206,7 +206,7 @@ EXPOSE 587
 EXPOSE 465
 
 # HTTP for letsencrypt http challenge
-# EXPOSE 80
+EXPOSE 80
 # HTTPS For letsencrypt https challenge
 EXPOSE 443
 
