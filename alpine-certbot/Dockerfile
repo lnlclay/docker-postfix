@@ -2,13 +2,11 @@ FROM alpine:latest
 MAINTAINER "lnlclay"
 
 # update base image
-RUN apk -U upgrade; \
-    apk cache clean;
+RUN apk -U upgrade; 
 
 # openssl
 RUN mkdir /ssl_certs; \
-    apk add openssl; \
-    apk cache clean;
+    apk add openssl; 
 
 # postfix
 RUN apk add postfix cyrus-sasl-plain cyrus-sasl-md5; \
@@ -47,8 +45,7 @@ RUN apk add postfix cyrus-sasl-plain cyrus-sasl-md5; \
     sed -i 's/^#\(.* smtpd_sasl_auth_enable=.*\)/\1/' /etc/postfix/master.cf; \
     sed -i 's/^#\(.* smtpd_recipient_restrictions=\).*/\1permit_sasl_authenticated,reject/' /etc/postfix/master.cf; \
     sed -i 's/^#\(.* smtpd_tls_wrappermode=.*\)/\1/' /etc/postfix/master.cf; \
-    newaliases; \
-    apk cache clean;
+    newaliases; 
 
 # opendkim
 RUN mkdir /dkim_keys; \
@@ -57,13 +54,11 @@ RUN mkdir /dkim_keys; \
     sed -i 's/^\(Mode\t\).*/\1s/' /etc/opendkim.conf; \
     sed -i 's/^\(SoftwareHeader\t\).*/\1no/' /etc/opendkim.conf; \
     sed -i 's/^# *\(Domain\t.*\)/\1/' /etc/opendkim.conf; \
-    echo 'smtpd_milters = inet:localhost:8891' >> /etc/postfix/main.cf; \
-    apk cache clean;
+    echo 'smtpd_milters = inet:localhost:8891' >> /etc/postfix/main.cf; 
 
 # rsyslog
 RUN apk add rsyslog; \
-    sed -i 's/\(SysSock\.Use\)="off"/\1="on"/' /etc/rsyslog.conf; \
-    apk cache clean;
+    sed -i 's/\(SysSock\.Use\)="off"/\1="on"/' /etc/rsyslog.conf; 
 
 # supervisor
 RUN mkdir /run/supervisor; \
@@ -94,8 +89,7 @@ RUN mkdir /run/supervisor; \
     echo 'priority=1'; \
     echo 'stdout_logfile=/dev/fd/1'; \
     echo 'stdout_logfile_maxbytes=0'; \
-    } > /etc/supervisord.d/tail.ini; \
-    apk cache clean;
+    } > /etc/supervisord.d/tail.ini; 
     
 # certbot
 RUN apk add certbot; \
@@ -122,8 +116,7 @@ RUN apk add certbot; \
     echo 'priority=3'; \
     echo 'stdout_logfile=/dev/fd/1'; \
     echo 'stdout_logfile_maxbytes=0'; \
-    } > /etc/supervisord.d/letsencrypt-log.ini; \
-    apk cache clean;
+    } > /etc/supervisord.d/letsencrypt-log.ini; 
 
 # entrypoint
 RUN { \
