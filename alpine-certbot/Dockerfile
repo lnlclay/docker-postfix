@@ -9,7 +9,7 @@ RUN mkdir /ssl_certs; \
     apk add openssl; 
 
 # postfix
-RUN apk add postfix cyrus-sasl-plain cyrus-sasl-md5; \
+RUN apk add postfix cyrus-sasl cyrus-sasl-plain cyrus-sasl-md5; \
     sed -i 's/^\(inet_interfaces =\) .*/\1 all/' /etc/postfix/main.cf; \
     sed -i 's/^\(smtpd_tls_cert_file =\) .*/\1 \/ssl_certs\/cert.pem/' /etc/postfix/main.cf; \
     sed -i 's/^\(smtpd_tls_key_file =\) .*/\1 \/ssl_certs\/key.pem/' /etc/postfix/main.cf; \
